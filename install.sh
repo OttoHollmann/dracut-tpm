@@ -34,11 +34,14 @@ case $1 in
   elif [ ! -f /usr/sbin/tpm_nvdefine ]; then
     echo "tpm_nvdefine not found."
     error_out
+  elif [ ! -f /usr/sbin/nscd ]; then
+    echo "nscd not found."
+    error_out
   fi
   # nv-hook is distributed set to METHOD=0, so no need to 'sed' it
   sed -i '/METHOD=1/c\METHOD=0' nv-hook.sh
   # Ensure no incidence of nv_readvalue left over
-  sed -i 's/inst_multiple.*/inst_multiple nc \/etc\/hosts tcsd tpm_nvread/g' module-setup.sh
+  sed -i 's/inst_multiple.*/inst_multiple ncat \/etc\/hosts tcsd tpm_nvread \/etc\/tcsd.conf nscd \/etc\/nscd.conf/g' module-setup.sh
   ;;
   "1"*)
   if [ ! -f /usr/bin/nv_readvalue ]; then
@@ -47,7 +50,7 @@ case $1 in
   fi
   sed -i '/METHOD=0/c\METHOD=1' nv-hook.sh
   # Ensure no incidence of trousers/tpm_nvread left over
-  sed -i 's/inst_multiple.*/inst_multiple nc nv_readvalue/g' module-setup.sh
+  sed -i 's/inst_multiple.*/inst_multiple ncat nv_readvalue/g' module-setup.sh
   ;;
   *)
    error_out

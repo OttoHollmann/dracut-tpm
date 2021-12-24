@@ -28,6 +28,14 @@
 # 1 = nv_readvalue
 METHOD=0
 
+#Create users and groups for tcsd and nscd
+echo "tss:x:98:98:TSS daemon:/var/lib/tpm:/bin/false\
+nscd:x:474:475:User for nscd:/run/nscd:/sbin/nologin" >> /etc/passwd
+echo "tss:x:98:\
+nscd:x:475:" >> /etc/group
+chown root:tss /etc/tcsd.conf
+chown root:nscd /etc/nscd.conf
+
 shopt -s nullglob
 for question in /run/systemd/ask-password/ask.*; do
     # Check all questions in systemd-ask-password for a socket corresponding
@@ -75,5 +83,5 @@ for question in /run/systemd/ask-password/ask.*; do
       pt="`nv_readvalue -ix 1 -sz 64 -a`"
     fi
     # Send key to systemd-ask-password socket
-    echo -n "+$pt" | nc -U -u --send-only "$s"
+    echo -n "+$pt" | ncat -U -u --send-only "$s"
 done

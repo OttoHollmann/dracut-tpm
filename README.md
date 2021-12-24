@@ -2,20 +2,20 @@
 The clevis project now includes TPM 2.0 support, so I would suggest migrating in that direction where possible.  
   
 # dracut-tpm
-This project provides a *simple* module for dracut to allow reading keys from TPM 1.2 modules to unlock LUKS devices at boot time.
+This project provides a *simple* module for dracut to allow reading keys from TPM 1.2 modules to unlock LUKS devices at boot time for openSUSE.
 
 # Requirements
-This project uses **ncat** to communicate with the systemd-ask-password socket; this program is available in CentOS' nmap-ncat package. 
+This project uses **ncat** to communicate with the systemd-ask-password socket; this program is available in openSUSE' `ncat` package. 
 
 You'll also need to use a bootloader that supports extending PCRs.  There are some various options for this, including TrustedGrub2, TPM-LUKS, and mjg59's fork of grub.
 
 # NVRAM Access
 Additionally, one of the two options for reading from the NVRAM must be chosen:
-1. Use **tcsd** and **tpm_nvread** - this requires the *trousers* and *tpm-tools* packages in CentOS
+1. Use **tcsd** and **tpm_nvread** - this requires the `trousers` and `tpm-tools` packages in openSUSE
 2. Use the standalone program **nv_readvalue** - this requires building **nv_readvalue** from [this repository](http://github.com/gastamper/tpm-luks)
 
 Why choose one over the other?
-**tcsd** and **tpm_nvread** are included in the base repositories for CentOS, making this path somewhat more straightforward.  As a downside, it is more complicated "under the hood" so for those who prefer simplicity and a slim initramfs, this may not be the ideal options.  Additionally, a separate user *tss* is required for tcsd to function (```echo tss:x:100:100:TSS:/:/sbin/nologin >> /etc/passwd```)  
+**tcsd** and **tpm_nvread** are included in the base repositories for openSUSE, making this path somewhat more straightforward.  As a downside, it is more complicated "under the hood" so for those who prefer simplicity and a slim initramfs, this may not be the ideal options.
 **nv_readvalue** however can be built as a standalone program, making this single program the only dependency for the dracut module.
 
 It is ultimately a matter of preference with little practical value.  For most users, option 1 is sufficient.
@@ -23,14 +23,13 @@ It is ultimately a matter of preference with little practical value.  For most u
 # Installation
 1. Create and store keys in your preferred NVRAM slot (see below)
 2. Clone this repository
-3. Update the inst_multiple line in module-setup.sh and remove whichever of nv_readvalue/tcsd & tpm_nvread you **aren't** using.
-4. Run install.sh; this performs the following steps:
+3. Run install.sh; this performs the following steps:
    1. Ensures that the necessary files, either **tcsd** and **tpm_nvread** or **nv_readvalue** are available on your system.
    2. Ensures that the TPM module is owned, active and enabled.
-   3. If not using default values, updates the module scripts to use the user-specified NVRAM index and size.
-   4. Creates a directory, /usr/lib/dracut/modules.d/50dracuttpm
+   3. Update the inst_multiple line in module-setup.sh and remove whichever of nv_readvalue/tcsd & tpm_nvread you **aren't** using.
+   4. Creates a directory: /usr/lib/dracut/modules.d/50dracuttpm
    5. Copies the dracut module files to the above directory: *module-setup.sh* and *nv-hook.sh*
-5. Reboot system and confirm automatic unlocking works.
+4. Reboot system and confirm automatic unlocking works.
 
 # Storing keys in NVRAM
 Keys are stored in NVRAM by using the **tpm_nvwrite** command, part of the tpm-tools package.  The steps for performing this process are as follows; note that this assumes that you have already taken ownership (initialized and taken control) of the TPM module using the **tpm_takeownership** command.
@@ -40,7 +39,8 @@ mkdir -p /mnt/ramfs
 mount -t tmpfs -o size=1m tmpfs /mnt/ramfs
 chmod 700 /mnt/ramfs
 # Generate 256 bytes of random data to serve as our key
-dd if=/dev/random of=/mnt/ramfs/key bs=1 count=256
+# Because password goes through ncat and systemd-ask-password socket it should contain only printable characters
+base64 < /dev/random | tr -d "\n" |  head -c 256 > /mnt/ramfs/key
 # Define a new NVRAM area at the specified index, of the specified size
 # See 'man tpm_nvdefine' for permissions explanation
 tpm_nvdefine -i 1 -s 256 -p "OWNERWRITE|READ_STCLEAR" -o <owner_password> [-r <PCR1> -r <PCR2> ... n]
