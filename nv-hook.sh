@@ -74,10 +74,17 @@ for question in /run/systemd/ask-password/ask.*; do
         tcsd
         tpm_nvread -i 1 -f /mnt/ramfs/key
       fi
-      # Store key
-      pt="`cat /mnt/ramfs/key`"
-      # Unmount the RAMFS
-      umount /mnt/ramfs
+      # If key file doesn't exists, do not enter empty password!
+      if [[ -f /mnt/ramfs/key ]]; then
+        # Store key
+        pt="`cat /mnt/ramfs/key`"
+        # Unmount the RAMFS
+        umount /mnt/ramfs
+      else
+        # Unmount the RAMFS
+        umount /mnt/ramfs
+        continue
+      fi
     # Else we are using nv_readvalue
     else
       pt="`nv_readvalue -ix 1 -sz 64 -a`"
